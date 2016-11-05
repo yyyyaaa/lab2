@@ -1,0 +1,3 @@
+# so mau: 150
+# so thuoc tinh: 5
+# thuoc tinh 0: sepal_length numeric# thuoc tinh 1: sepal_width numeric# thuoc tinh 2: petal_length numeric# thuoc tinh 3: petal_width numeric# thuoc tinh 4: class nominal
