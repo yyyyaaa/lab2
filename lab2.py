@@ -1,5 +1,6 @@
 import sys
 import collections
+from pprint import pprint
 
 def user_input():
 	if len(sys.argv) != 5:
@@ -15,8 +16,7 @@ def read_file(filename):
 		data = []
 		for line in f:
 			raw = line.strip().split(',')
-			processed = [float(item) if index != 4 and item != "?" else "?" for index, item in enumerate(raw)]
-			processed.append(raw[-1])
+			processed = [float(item) if is_number(item) else item for index, item in enumerate(raw)]
 			data.append(processed)
 	return {'meta': first_line, 'data': data}
 
@@ -54,25 +54,43 @@ def summary(data_dict, logfile):
 			f.write("# thuoc tinh {}: {} {}".format(index, attr, _type))
 
 def replace(data_dict, outfile, logfile):
-	data_dup = data_dict['data']
-	for line in data_dup:
-		for index, item in enumerate(line):
-			if item == "?":
-				line[index] = find_average(data_dict, index)
+	# TODO: write to outfile
+	data_dup = unshared_copy(data_dict)
+	fill_ins = {}
+	# Generate the fill-in values for missing fields
+	for column_index in range(len(data_dup['meta'])):
+		if "?" in [line[column_index] for line in data_dict['data']]:
+			if column_index == len(data_dup['meta']) - 1:
+				fill_ins[column_index] = find_most_frequent(data_dup, column_index)
+			else:
+				fill_ins[column_index] = find_average(data_dup, column_index)
+
+	# Log to logfile
 	with open(logfile, 'wt') as log:
 		attributes = data_dict['meta']
 		# loop through all columns
-		for index, attr in attributes:
+		for index, attr in enumerate(attributes):
 			# numeric type
-			if index != len(attributes) - 1:
-				log.write("# thuoc tinh: {}, {}, {}".format(attr, find_num_missing(data_dict, index), find_average(data_dict, index)))
-			else:
-				log.write("# thuoc tinh: {}, {}, {}".format(attr, find_num_missing(data_dict, index), find_most_frequent(data_dict, index)))
+			num_of_missings = find_num_missing(data_dict, index)
+			if num_of_missings != 0:
+				print fill_ins[index]
+				log.write("# thuoc tinh: {}, {}, {} \n".format(attr, num_of_missings, fill_ins[index]))
+
+	# Replace missing values
+	for line in data_dup['data']:
+		#  each line in dataset
+		for index, item in enumerate(line):
+			# If a field is missing
+			if item == "?":
+				# that field is the nominal field
+				line[index] = fill_ins[index]
+				
+	return data_dup
+
 
 def discretize():
 	pass
-def min_max(minc,maxc,value,newmin=0.0,newmac=1.0):
-	return (float(value)-minc)/(maxc-minc)
+
 def normalize(data,logfile):
 	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
 	#method = "z-score"
@@ -87,7 +105,7 @@ def normalize(data,logfile):
 					data["data"][index1][index2] = value
 					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index2],value))
 		#print data
-		
+
 	if (method == "z-score"):
 		for index in range(len(data["meta"])-1):
 			value = [x[index] for x in data["data"] if x[index]!="?"]
@@ -98,37 +116,46 @@ def normalize(data,logfile):
 				if data["data"][i][index] != "?":
 					value = (row[index] - ave)/std_dev
 					data["data"][i][index] = value
-					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index],value))		
+					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index],value))
 		#print data
 	log.close()
-		
+
+# Helpers
+def is_number(s):
+	try:
+		float(s)
+		return True
+	except ValueError:
+		return False
 
 def find_average(data_dict, field_index):
 	column = [line[field_index] for line in data_dict['data'] if line[field_index] != "?"]
 	return sum(column) / len(data_dict['data'])
 
 def find_most_frequent(data_dict, field_index):
-	attr_freq = collections.defaultdict(lambda: 1)
-	max_attr = {'attr': '', 'freq': 0}
-	for data in data_dict['data']:
-		if data[field_index] != '?':
-			attr_freq[data[field_index]] += 1
-	for attr, freq in attr_freq.iteritems():
-		if freq > max_attr['freq']:
-			max_attr['attr'] = attr
-			max_attr['freq'] = freq
-	return max_attr['attr']
+	column = [line[field_index] for line in data_dict['data'] if line[field_index] != "?"]
+	distinct_items = set(column)
+	item_with_counts = {item: column.count(item) for item in distinct_items}
+	return max(item_with_counts.iterkeys(), key= (lambda key: item_with_counts[key]))
 
 def find_num_missing(data_dict, field_index):
 	how_many = len([line[field_index] for line in data_dict['data'] if line[field_index] == "?"])
 	return how_many
 
+def min_max(minc,maxc,value,newmin=0.0,newmac=1.0):
+	return (float(value)-minc)/(maxc-minc)
+
+def unshared_copy(inList):
+    if isinstance(inList, list):
+        return list( map(unshared_copy, inList) )
+    return inList
+
 if __name__ == "__main__":
-	data = read_file("data.dat")
+	data = read_file("small.dat")
 	outfile = "output.txt"
-	#print data["data"]
+	# pprint(data["data"])
 	# print find_most_frequent(data, -1)
 	# print find_num_missing(data, -1)
-	#replace(data, "lol", "log.txt")
-	normalize(data,"log.txt")
-	write_file(outfile,data)
+	replace(data, "lol", "log.txt")
+	# normalize(data,"log.txt")
+	# write_file(outfile,data)
