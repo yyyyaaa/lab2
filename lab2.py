@@ -20,6 +20,12 @@ def read_file(filename):
 			data.append(processed)
 	return {'meta': first_line, 'data': data}
 
+def write_file(filename,data):
+	with open(filename, 'wt') as f:
+		f.write(",".join(data["meta"])+"\n")
+		for row in data["data"]:
+			f.write(",".join(str(x) for x in row) + "\n")
+	f.close()
 
 def user_option(option):
 	if option not in ["summary", "replace", "discretize", "normalize"]:
@@ -119,8 +125,10 @@ def find_num_missing(data_dict, field_index):
 
 if __name__ == "__main__":
 	data = read_file("data.dat")
+	outfile = "output.txt"
 	#print data["data"]
 	# print find_most_frequent(data, -1)
 	# print find_num_missing(data, -1)
 	#replace(data, "lol", "log.txt")
 	normalize(data,"log.txt")
+	write_file(outfile,data)
