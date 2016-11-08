@@ -65,42 +65,37 @@ def replace(data_dict, outfile, logfile):
 
 def discretize():
 	pass
-def min_max(minc,maxc,value):
+def min_max(minc,maxc,value,newmin=0.0,newmac=1.0):
 	return (float(value)-minc)/(maxc-minc)
-def normalize(data):
-	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ")
-	#method = "min-max"
+def normalize(data,logfile):
+	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
+	#method = "z-score"
+	log = open(logfile, 'wt')
 	if (method == "min-max"):
 		numcol = len(data["meta"])-1
-		#minc = data["data"][0][:-2]
-		#maxc = data["data"][0][:-2]
-		#for row in data["data"]:
-		#    for index,col in enumerate(row):
-		#        if index < numcol-1 and col != "?":
-		#            if (col > maxc[index]):
-		#                maxc[index] = col
-		#            if (col < minc[index]):
-		#                minc[index] = col
 		m = [[min(col),max(col)] for col in [[x[i] for x in data["data"] if (x[i]!="?")] for i in range(numcol)]]
 		for index1,row in enumerate(data["data"]):
 			for index2,col in enumerate(row):
-				if index2 < numcol-1 and col != "?":
-					#data["data"][index1][index2] = min_max(minc[index2],maxc[index2],data["data"][index1][index2])
-					data["data"][index1][index2] = min_max(m[index2][0],m[index2][1],data["data"][index1][index2])
-		print data
-		pass
+				if index2 < numcol and col != "?":
+					value = min_max(m[index2][0],m[index2][1],data["data"][index1][index2])
+					data["data"][index1][index2] = value
+					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index2],value))
+		#print data
+		
 	if (method == "z-score"):
 		for index in range(len(data["meta"])-1):
 			value = [x[index] for x in data["data"] if x[index]!="?"]
 			ave = sum(value)/len(value)
 			var = sum([(x-ave)**2 for x in value])/len(value)
-			std_dev = std_dev**0.5
+			std_dev = var**0.5
 			for i,row in enumerate(data["data"]):
 				if data["data"][i][index] != "?":
-					data["data"][i][index] = (row[index] - ave)/std_dev
-		print data
-		pass
-	pass
+					value = (row[index] - ave)/std_dev
+					data["data"][i][index] = value
+					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index],value))		
+		#print data
+	log.close()
+		
 
 def find_average(data_dict, field_index):
 	column = [line[field_index] for line in data_dict['data'] if line[field_index] != "?"]
@@ -128,4 +123,4 @@ if __name__ == "__main__":
 	# print find_most_frequent(data, -1)
 	# print find_num_missing(data, -1)
 	#replace(data, "lol", "log.txt")
-	normalize(data)
+	normalize(data,"log.txt")
