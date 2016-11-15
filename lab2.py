@@ -15,7 +15,7 @@ def summary(data_dict, logfile):
 			else:
 				_type = "numeric"
 			print "# thuoc tinh {}: {} {}".format(index, attr, _type)
-			f.write("# thuoc tinh {}: {} {}".format(index, attr, _type))
+			f.write("# thuoc tinh {}: {} {} \n".format(index, attr, _type))
 
 def replace(data_dict, outfile, logfile):
 	data_dup = unshared_copy(data_dict)
@@ -183,10 +183,6 @@ def getWidthBinning(attr, bin_num):
 		upper_bound = width_partition + lower_bound
 		while flag:
 			bin_list = []
-            # There is no data left for this bin
-			#if index == len(attr) - 1:
-				#all_bins.append(bin_list)
-				#break
 
             # Put data to the bin
 			for i in range(index, len(attr)):
@@ -328,7 +324,7 @@ def user_options(options, data):
 	method = options[0]
 
 	if method == "summary":
-		summary(data, options[2])
+		summary(data, options[3])
 	elif method == "replace":
 		replace(data, options[2], options[3])
 	elif method == "discretize":
@@ -341,16 +337,8 @@ def user_options(options, data):
 
 
 if __name__ == "__main__":
-	# outfile = "output.txt"
-	# pprint(data["data"])
-	# print find_most_frequent(data, -1)
-	# print find_num_missing(data, -1)
-	# replace(data, "outfile.txt", "log.txt")
-	# normalize(data, "outfile.txt", "log.txt")
-	# discretize(data, outfile, 'logfile.txt')
-
 	args = sys.argv[1:]
-	if len(args) < 3:
+	if len(args) < 4:
 		print "Wrong number of arguments."
 	else:
 		data = read_file(args[1].lower())
