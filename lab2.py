@@ -273,18 +273,21 @@ def getSortedAttribute(data):
 	return (attr1, attr2, attr3, attr4)
 
 
-
+def min_max(minc,maxc,value,newmin=0.0,newmax=1.0):
+	return ((float(value)-minc)/(maxc-minc))*(newmax-newmin)+newmin
 def normalize(data,logfile):
 	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
 	#method = "z-score"
 	log = open(logfile, 'wt')
 	if (method == "min-max"):
+		newmin = float(raw_input("Moi ban nhap gia tri min moi:"))
+		newmax = float(raw_input("Moi ban nhap gia tri max moi:"))
 		numcol = len(data["meta"])-1
 		m = [[min(col),max(col)] for col in [[x[i] for x in data["data"] if (x[i]!="?")] for i in range(numcol)]]
 		for index1,row in enumerate(data["data"]):
 			for index2,col in enumerate(row):
 				if index2 < numcol and col != "?":
-					value = min_max(m[index2][0],m[index2][1],data["data"][index1][index2])
+					value = min_max(m[index2][0],m[index2][1],data["data"][index1][index2],newmin,newmax)
 					data["data"][index1][index2] = value
 					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index2],value))
 		#print data
@@ -325,8 +328,7 @@ def find_num_missing(data_dict, field_index):
 	how_many = len([line[field_index] for line in data_dict['data'] if line[field_index] == "?"])
 	return how_many
 
-def min_max(minc,maxc,value,newmin=0.0,newmac=1.0):
-	return (float(value)-minc)/(maxc-minc)
+
 
 def unshared_copy(inList):
     if isinstance(inList, list):
@@ -340,6 +342,6 @@ if __name__ == "__main__":
 	# print find_most_frequent(data, -1)
 	# print find_num_missing(data, -1)
 	#replace(data, "lol", "log.txt")
-	# normalize(data,"log.txt")
+	#normalize(data,"log.txt")
 	# write_file(outfile,data)
-	discretize(data, outfile, 'logfile.txt')
+	#discretize(data, outfile, 'logfile.txt')
