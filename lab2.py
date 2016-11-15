@@ -3,7 +3,7 @@ import collections
 from pprint import pprint
 import argparse
 
-def summary(data_dict, logfile):
+def summary(data_dict, logfile=None):
 	attributes = data_dict['meta']
 	num_of_samples = data_dict
 	with open(logfile, 'wt') as f:
@@ -17,7 +17,7 @@ def summary(data_dict, logfile):
 			print "# thuoc tinh {}: {} {}".format(index, attr, _type)
 			f.write("# thuoc tinh {}: {} {} \n".format(index, attr, _type))
 
-def replace(data_dict, logfile):
+def replace(data_dict, logfile=None):
 	data_dup = unshared_copy(data_dict)
 	fill_ins = {}
 	# Generate the fill-in values for missing fields
@@ -29,13 +29,14 @@ def replace(data_dict, logfile):
 				fill_ins[column_index] = find_average(data_dup, column_index)
 
 	# Log to logfile
-	with open(logfile, 'wt') as log:
-		attributes = data_dict['meta']
-		# loop through all columns
-		for index, attr in enumerate(attributes):
-			num_of_missings = find_num_missing(data_dict, index)
-			if num_of_missings != 0:
-				log.write("# thuoc tinh: {}, {}, {} \n".format(attr, num_of_missings, fill_ins[index]))
+	if logfile != None:
+		with open(logfile, 'wt') as log:
+			attributes = data_dict['meta']
+			# loop through all columns
+			for index, attr in enumerate(attributes):
+				num_of_missings = find_num_missing(data_dict, index)
+				if num_of_missings != 0:
+					log.write("# thuoc tinh: {}, {}, {} \n".format(attr, num_of_missings, fill_ins[index]))
 
 	# Replace missing values
 	for line in data_dup['data']:
@@ -49,6 +50,8 @@ def replace(data_dict, logfile):
 
 
 def discretize(data, outputfile, logfile):
+	if has_missing_field(data):
+		data = replace(data)
 	# Store the result
 	discretized_attrs = []
 
@@ -228,7 +231,7 @@ def getSortedAttribute(data):
 	return (attr1, attr2, attr3, attr4)
 
 
-def normalize(data, logfile):
+def normalize(data, logfile=None):
 	data_dup = unshared_copy(data)
 	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
 	#method = "z-score"
@@ -282,6 +285,12 @@ def find_most_frequent(data_dict, field_index):
 def find_num_missing(data_dict, field_index):
 	how_many = len([line[field_index] for line in data_dict['data'] if line[field_index] == "?"])
 	return how_many
+
+def has_missing_field(data_dict):
+	for field_index in range(len(data_dict['meta'])):
+		if find_num_missing(data_dict, field_index) != 0:
+			return True
+	return False
 
 def min_max(minc,maxc,value,newmin=0.0,newmax=1.0):
 	return ((float(value)-minc)/(maxc-minc))*(newmax-newmin)+newmin

@@ -1,3 +1,4 @@
-# thuoc tinh: sepal_length, 3, 5.015 
-# thuoc tinh: petal_width, 3, 1.1 
-# thuoc tinh: class, 2, Iris-virginica 
+#thuoc tinh: sepal_length 4.7-5.1: 8 5.6-5.8: 5 6.2-6.5: 3 6.7-7.3: 4 
+#thuoc tinh: sepal_width 2.2-2.5: 5 2.7-2.9: 6 3.0-3.2: 6 3.5-3.6: 3 
+#thuoc tinh: petal_length 1.3-1.5: 5 3.3-3.3: 1 3.9-5.0: 7 5.1-6.3: 7 
+#thuoc tinh: petal_width 0.2-0.2: 4 1.0-1.3: 9 1.5-1.8: 2 2.0-2.5: 5 
