@@ -1,43 +1,7 @@
 import sys
 import collections
 from pprint import pprint
-
-def user_input():
-	if len(sys.argv) != 5:
-		print "Wrong number of arguments!"
-		return None
-	option, infile, outfile, log = sys.argv[1:]
-	return (option, infile, outfile, log)
-
-
-def read_file(filename):
-	with open(filename, 'rt') as f:
-		first_line = f.readline().strip().split(',')
-		data = []
-		for line in f:
-			raw = line.strip().split(',')
-			processed = [float(item) if is_number(item) else item for index, item in enumerate(raw)]
-			data.append(processed)
-	return {'meta': first_line, 'data': data}
-
-def write_file(filename,data):
-	with open(filename, 'wt') as f:
-		f.write(",".join(data["meta"])+"\n")
-		for row in data["data"]:
-			f.write(",".join(str(x) for x in row) + "\n")
-	f.close()
-
-def user_option(option):
-	if option not in ["summary", "replace", "discretize", "normalize"]:
-		return None
-	if option == "summary":
-		summary()
-	elif option == "replace":
-		replace()
-	elif option == "discretize":
-		discretize()
-	elif option == "normalize":
-		normalize()
+import argparse
 
 def summary(data_dict, logfile):
 	attributes = data_dict['meta']
@@ -54,7 +18,6 @@ def summary(data_dict, logfile):
 			f.write("# thuoc tinh {}: {} {}".format(index, attr, _type))
 
 def replace(data_dict, outfile, logfile):
-	# TODO: write to outfile
 	data_dup = unshared_copy(data_dict)
 	fill_ins = {}
 	# Generate the fill-in values for missing fields
@@ -70,10 +33,8 @@ def replace(data_dict, outfile, logfile):
 		attributes = data_dict['meta']
 		# loop through all columns
 		for index, attr in enumerate(attributes):
-			# numeric type
 			num_of_missings = find_num_missing(data_dict, index)
 			if num_of_missings != 0:
-				print fill_ins[index]
 				log.write("# thuoc tinh: {}, {}, {} \n".format(attr, num_of_missings, fill_ins[index]))
 
 	# Replace missing values
@@ -84,7 +45,7 @@ def replace(data_dict, outfile, logfile):
 			if item == "?":
 				# that field is the nominal field
 				line[index] = fill_ins[index]
-				
+	write_file(outfile, data_dup)
 	return data_dup
 
 
@@ -248,7 +209,6 @@ def getWidthBinning(attr, bin_num):
 	return all_bins
 
 
-
 def getSortedAttribute(data):
 	attr1, attr2, attr3, attr4 = [], [], [], []
 	for datum in data['data']:
@@ -274,34 +234,38 @@ def getSortedAttribute(data):
 
 
 
-def normalize(data,logfile):
-	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
-	#method = "z-score"
+def normalize(data, outfile, logfile):
+	# Deep copy the data just in case
+	data_dup = unshared_copy(data_dict)
+	# method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
+	method = "z-score"
 	log = open(logfile, 'wt')
 	if (method == "min-max"):
-		numcol = len(data["meta"])-1
-		m = [[min(col),max(col)] for col in [[x[i] for x in data["data"] if (x[i]!="?")] for i in range(numcol)]]
-		for index1,row in enumerate(data["data"]):
+		numcol = len(data_dup["meta"])-1
+		m = [[min(col),max(col)] for col in [[x[i] for x in data_dup["data"] if (x[i]!="?")] for i in range(numcol)]]
+		for index1,row in enumerate(data_dup["data"]):
 			for index2,col in enumerate(row):
 				if index2 < numcol and col != "?":
-					value = min_max(m[index2][0],m[index2][1],data["data"][index1][index2])
-					data["data"][index1][index2] = value
-					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index2],value))
-		#print data
+					value = min_max(m[index2][0],m[index2][1],data_dup["data"][index1][index2])
+					data_dup["data"][index1][index2] = value
+					log.write("# thuoctinh: %s, %f\n" %(data_dup["meta"][index2],value))
+		# print data
 
 	if (method == "z-score"):
-		for index in range(len(data["meta"])-1):
-			value = [x[index] for x in data["data"] if x[index]!="?"]
+		for index in range(len(data_dup["meta"])-1):
+			value = [x[index] for x in data_dup["data"] if x[index]!="?"]
 			ave = sum(value)/len(value)
 			var = sum([(x-ave)**2 for x in value])/len(value)
 			std_dev = var**0.5
-			for i,row in enumerate(data["data"]):
-				if data["data"][i][index] != "?":
+			for i,row in enumerate(data_dup["data"]):
+				if data_dup["data"][i][index] != "?":
 					value = (row[index] - ave)/std_dev
-					data["data"][i][index] = value
-					log.write("# thuoctinh: %s, %f\n" %(data["meta"][index],value))
-		#print data
+					data_dup["data"][i][index] = value
+					log.write("# thuoctinh: %s, %f\n" %(data_dup["meta"][index],value))
+		# print data
 	log.close()
+	write_file(outfile, data_dup)
+	return data_dup
 
 # Helpers
 def is_number(s):
@@ -333,13 +297,61 @@ def unshared_copy(inList):
         return list( map(unshared_copy, inList) )
     return inList
 
+def user_input():
+	if len(sys.argv) != 5:
+		print "Wrong number of arguments!"
+		return None
+	option, infile, outfile, log = sys.argv[1:]
+	return (option, infile, outfile, log)
+
+
+def read_file(filename):
+	with open(filename, 'rt') as f:
+		first_line = f.readline().strip().split(',')
+		data = []
+		for line in f:
+			raw = line.strip().split(',')
+			processed = [float(item) if is_number(item) else item for index, item in enumerate(raw)]
+			data.append(processed)
+	return {'meta': first_line, 'data': data}
+
+def write_file(filename, data_dict):
+	try:
+		with open(filename, 'wt') as f:
+			f.write(",".join(data["meta"]) + "\n")
+			for row in data["data"]:
+				f.write(",".join(str(x) for x in row) + "\n")
+	except Exception as e:
+		print e
+
+def user_options(options, data):
+	method = options[0]
+
+	if method == "summary":
+		summary(data, options[2])
+	elif method == "replace":
+		replace(data, options[2], options[3])
+	elif method == "discretize":
+		discretize(data, options[2], options[3])
+	elif method == "normalize":
+		normalize(data, options[2], options[3])
+	else:
+		print "Method not specified. Please specify a method: [summary, replace, discretize, normalize]"
+		return None
+
+
 if __name__ == "__main__":
-	data = read_file("data.dat")
-	outfile = "output.txt"
+	# outfile = "output.txt"
 	# pprint(data["data"])
 	# print find_most_frequent(data, -1)
 	# print find_num_missing(data, -1)
-	#replace(data, "lol", "log.txt")
-	# normalize(data,"log.txt")
-	# write_file(outfile,data)
-	discretize(data, outfile, 'logfile.txt')
+	# replace(data, "outfile.txt", "log.txt")
+	# normalize(data, "outfile.txt", "log.txt")
+	# discretize(data, outfile, 'logfile.txt')
+
+	args = sys.argv[1:]
+	if len(args) < 3:
+		print "Wrong number of arguments."
+	else:
+		data = read_file(args[1].lower())
+		user_options(args, data)
