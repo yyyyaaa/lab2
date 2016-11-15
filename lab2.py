@@ -17,7 +17,7 @@ def summary(data_dict, logfile):
 			print "# thuoc tinh {}: {} {}".format(index, attr, _type)
 			f.write("# thuoc tinh {}: {} {} \n".format(index, attr, _type))
 
-def replace(data_dict, outfile, logfile):
+def replace(data_dict, logfile):
 	data_dup = unshared_copy(data_dict)
 	fill_ins = {}
 	# Generate the fill-in values for missing fields
@@ -45,7 +45,6 @@ def replace(data_dict, outfile, logfile):
 			if item == "?":
 				# that field is the nominal field
 				line[index] = fill_ins[index]
-	write_file(outfile, data_dup)
 	return data_dup
 
 
@@ -229,7 +228,7 @@ def getSortedAttribute(data):
 	return (attr1, attr2, attr3, attr4)
 
 
-def normalize(data, outfile,logfile):
+def normalize(data, logfile):
 	data_dup = unshared_copy(data)
 	method = raw_input("Ban hay nhap phuong phap chuan hoa (min-max, z-score): ").strip()
 	#method = "z-score"
@@ -260,7 +259,6 @@ def normalize(data, outfile,logfile):
 					log.write("# thuoctinh: %s, %f\n" %(data_dup["meta"][index],value))
 		# print data
 	log.close()
-	write_file(outfile, data_dup)
 	return data_dup
 
 # Helpers
@@ -326,11 +324,13 @@ def user_options(options, data):
 	if method == "summary":
 		summary(data, options[3])
 	elif method == "replace":
-		replace(data, options[2], options[3])
+		data_changed = replace(data, options[3])
+		write_file(options[2], data_changed)
 	elif method == "discretize":
 		discretize(data, options[2], options[3])
 	elif method == "normalize":
-		normalize(data, options[2], options[3])
+		data_changed = normalize(data, options[3])
+		write_file(options[2], data_changed)
 	else:
 		print "Method not specified. Please specify a method: [summary, replace, discretize, normalize]"
 		return None
